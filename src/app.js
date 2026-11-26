@@ -56,5 +56,6 @@ if ($insertTarget.length > 0) {
 bindMainPanel($menuBtn);
 initMenuEntry();
 
-// 异步检查历史反馈有没有作者回复，不阻塞加载
+// 异步检查历史反馈有没有作者回复，不阻塞加载；之后每 5 分钟补查一次
 checkFeedbackReplies();
+setInterval(checkFeedbackReplies, 5 * 60 * 1000);

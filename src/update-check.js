@@ -98,10 +98,14 @@ export const checkForUpdates = async (force = false) => {
   };
   const server = await checkServerUpdate().catch(() => null);
   result.server = server;
-  if (server && !server.isUpToDate) {
-    result.hasUpdate = true;
-    result.remoteVer = await getRemoteVersion().catch(() => "");
-  }
+  // 远程版本号：既用于展示也用于判断。酒馆服务端的 git 检查不一定实时 fetch，
+  // 靠自己对比远程 manifest 的版本号更及时可靠
+  result.remoteVer = await getRemoteVersion().catch(() => "");
+  const manifestSaysNew =
+    Boolean(result.localVer) &&
+    Boolean(result.remoteVer) &&
+    compareVersions(result.remoteVer, result.localVer) > 0;
+  result.hasUpdate = Boolean(server && !server.isUpToDate) || manifestSaysNew;
   try {
     localStorage.setItem(
       CACHE_KEY,

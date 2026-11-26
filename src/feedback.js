@@ -180,7 +180,8 @@ const markRepliesSeen = (replies) => {
     } catch (e) {}
 };
 
-// 扩展加载后调用一次：有新回复就弹个小提示
+// 扩展加载后周期性调用：有新回复就弹个小提示；同一条回复每次打开只提醒一次
+let lastNotifiedReplyTs = 0;
 export const checkFeedbackReplies = async () => {
   try {
     const replies = await fetchMyReplies();
@@ -190,13 +191,22 @@ export const checkFeedbackReplies = async () => {
     try {
       seen = Number(localStorage.getItem(SEEN_KEY)) || 0;
     } catch (e) {}
-    const hasUnread = ids.some((id) => Number(replies[id].ts || 0) > seen);
-    if (hasUnread && typeof toastr !== "undefined")
+    const maxUnreadTs = Math.max(
+      0,
+      ...ids.map((id) => Number(replies[id].ts || 0)),
+    );
+    if (
+      maxUnreadTs > seen &&
+      maxUnreadTs > lastNotifiedReplyTs &&
+      typeof toastr !== "undefined"
+    ) {
+      lastNotifiedReplyTs = maxUnreadTs;
       toastr.info(
         "你在「全局世界书管理」的反馈收到了作者回复，打开「建议 & Bug 反馈」查看~",
         "",
         { timeOut: 8000 },
       );
+    }
   } catch (e) {}
 };
 
