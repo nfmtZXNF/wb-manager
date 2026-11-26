@@ -1,4 +1,4 @@
-import { getCharWorldbookNames, getCurrentCharacterName, getGlobalWorldbookNames, getWorldbook, getWorldbookNames, replaceWorldbook } from "./compat.js";
+import { getCharWorldbookNames, getCurrentCharacterName, getGlobalWorldbookNames, getWorldbook, getWorldbookNames, rebindGlobalWorldbooks, replaceWorldbook } from "./compat.js";
 import { luluGetChatSnapBinding, luluSetChatSnapBinding, luluUpdateCharSnapshotFlow } from "./char-snapshot.js";
 import { getSnapshotOrder, setCharSnapshotOrder, setSnapshotOrder, sortCharSnapshotNames, sortSnapshotNames } from "./snapshot-order.js";
 import { luluGetGlobalVars, luluUpdateGlobalVars } from "./state.js";

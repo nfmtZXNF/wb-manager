@@ -76,6 +76,8 @@ export const rebindCharWorldbooks = (...args) =>
   TH().rebindCharWorldbooks(...args);
 export const getGlobalWorldbookNames = (...args) =>
   TH().getGlobalWorldbookNames(...args);
+export const rebindGlobalWorldbooks = (...args) =>
+  TH().rebindGlobalWorldbooks(...args);
 
 // —— 酒馆助手：角色 ——
 export const getCurrentCharacterName = (...args) =>

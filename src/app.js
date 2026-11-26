@@ -16,6 +16,7 @@ import "./binding-cache.js";
 import { bindMainPanel } from "./main-panel.js";
 import { initMenuEntry } from "./menu-entry.js";
 import "./auto-detect.js";
+import { replaceScriptButtons } from "./compat.js";
 
 try {
   replaceScriptButtons([]);

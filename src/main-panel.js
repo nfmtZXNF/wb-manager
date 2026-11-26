@@ -1,4 +1,4 @@
-import { createWorldbook, deleteWorldbook, getCharWorldbookNames, getContext, getCurrentCharacterName, getGlobalWorldbookNames, getTokenCount, getWorldbook, getWorldbookNames, replaceWorldbook, saveMetadata } from "./compat.js";
+import { createWorldbook, deleteWorldbook, getCharWorldbookNames, getContext, getCurrentCharacterName, getGlobalWorldbookNames, getTokenCount, getWorldbook, getWorldbookNames, rebindGlobalWorldbooks, replaceWorldbook, saveMetadata } from "./compat.js";
 import { loadBindingCache, loadScannedAvatarList, saveBindingCache, saveScannedAvatarList } from "./binding-cache.js";
 import { luluGetChatSnapBinding, luluRebindCharWorldbooksSafe, luluSetChatSnapBinding, luluUpdateCharSnapshotFlow } from "./char-snapshot.js";
 import { getSharedGroupOrder, setSharedGroupOrder } from "./dom-shared.js";
