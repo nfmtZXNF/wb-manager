@@ -59,29 +59,31 @@ export const ensureSillyTavernCompat = () => {
 };
 ensureSillyTavernCompat();
 
+// 统一包装：调用前检查接口是否存在，缺失时给出可读的报错（而不是 "xxx is not a function"）
+const thCall = (name) => (...args) => {
+  const th = TH();
+  if (typeof th[name] !== "function")
+    throw new Error(`酒馆助手缺少 ${name} 接口，请把「酒馆助手」更新到最新版~`);
+  return th[name](...args);
+};
+
 // —— 酒馆助手：变量系统 ——
-export const getVariables = (...args) => TH().getVariables(...args);
-export const updateVariablesWith = (...args) =>
-  TH().updateVariablesWith(...args);
+export const getVariables = thCall("getVariables");
+export const updateVariablesWith = thCall("updateVariablesWith");
 
 // —— 酒馆助手：世界书 ——
-export const getWorldbook = (...args) => TH().getWorldbook(...args);
-export const replaceWorldbook = (...args) => TH().replaceWorldbook(...args);
-export const createWorldbook = (...args) => TH().createWorldbook(...args);
-export const deleteWorldbook = (...args) => TH().deleteWorldbook(...args);
-export const getWorldbookNames = (...args) => TH().getWorldbookNames(...args);
-export const getCharWorldbookNames = (...args) =>
-  TH().getCharWorldbookNames(...args);
-export const rebindCharWorldbooks = (...args) =>
-  TH().rebindCharWorldbooks(...args);
-export const getGlobalWorldbookNames = (...args) =>
-  TH().getGlobalWorldbookNames(...args);
-export const rebindGlobalWorldbooks = (...args) =>
-  TH().rebindGlobalWorldbooks(...args);
+export const getWorldbook = thCall("getWorldbook");
+export const replaceWorldbook = thCall("replaceWorldbook");
+export const createWorldbook = thCall("createWorldbook");
+export const deleteWorldbook = thCall("deleteWorldbook");
+export const getWorldbookNames = thCall("getWorldbookNames");
+export const getCharWorldbookNames = thCall("getCharWorldbookNames");
+export const rebindCharWorldbooks = thCall("rebindCharWorldbooks");
+export const getGlobalWorldbookNames = thCall("getGlobalWorldbookNames");
+export const rebindGlobalWorldbooks = thCall("rebindGlobalWorldbooks");
 
 // —— 酒馆助手：角色 ——
-export const getCurrentCharacterName = (...args) =>
-  TH().getCurrentCharacterName(...args);
+export const getCurrentCharacterName = thCall("getCurrentCharacterName");
 
 // —— 酒馆本体主窗口接口 ——
 export const getContext = () => window.SillyTavern.getContext();
