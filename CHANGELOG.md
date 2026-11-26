@@ -1,5 +1,9 @@
 # 更新日志
 
+## v6.2.2
+
+- 新增 Gitee 镜像：国内用户可从 Gitee 地址安装，更新检查在 GitHub 不通时自动回退镜像源
+
 ## v6.2.1
 
 - 修复全局世界书勾选/切换时报错「rebindGlobalWorldbooks is not defined」的问题

@@ -13,10 +13,16 @@
 
 ## 安装
 
-酒馆 →「扩展」→「安装扩展」，粘贴本仓库地址：
+酒馆 →「扩展」→「安装扩展」，粘贴仓库地址：
 
 ```
 https://github.com/nfmtZXNF/wb-manager
+```
+
+国内网络访问 GitHub 困难的话，改用 Gitee 镜像地址（之后一键更新也走国内）：
+
+```
+https://gitee.com/nfmt/wb-manage
 ```
 
 安装后刷新页面即可使用。
