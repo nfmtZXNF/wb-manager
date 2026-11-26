@@ -150,7 +150,12 @@ const showUpdateDialog = async (checkResult) => {
   if (!st || typeof st.callGenericPopup !== "function") return;
 
   const $dlg = $(
-    `<div style="text-align:left; min-width:300px; max-width:480px; line-height:1.7; padding:2px;">
+    `<style>
+      .gwbm-upd-popup .popup-buttons { display:flex !important; flex-direction:row !important; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+      .gwbm-upd-popup .popup-buttons .menu_button { flex:1 1 auto; min-width:0; margin:0; padding:8px 6px; font-size:13px; text-align:center; white-space:nowrap; }
+      .gwbm-upd-popup .popup-button-ok { display:none !important; }
+    </style>
+    <div style="text-align:left; min-width:0; max-width:480px; line-height:1.7; padding:2px;">
       <h3 style="margin-top:0; color:var(--SmartThemeQuoteColor);">
         <i class="fa-solid fa-arrow-up"></i> 发现新版本
       </h3>
@@ -174,17 +179,24 @@ const showUpdateDialog = async (checkResult) => {
       $log.html(logs.map((m) => `<div>${m}</div>`).join(""));
     } else {
       $log.html(
-        `<div style="opacity:0.7;">更新记录拉取失败（网络原因），可前往 GitHub 仓库查看。</div>`,
+        `<div style="opacity:0.7;">更新记录拉取失败（网络原因），可前往仓库页面查看。</div>`,
       );
     }
   });
 
-  const r = await st.callGenericPopup($dlg, st.POPUP_TYPE.TEXT, "", {
+  const popupPromise = st.callGenericPopup($dlg, st.POPUP_TYPE.TEXT, "", {
     customButtons: [
       { text: "立即更新", result: 1, classes: ["btn-success"] },
       { text: "暂不更新", result: 2 },
     ],
   });
+  // 弹窗挂上专属 class，让上面的按钮排版样式只作用于本弹窗
+  setTimeout(() => {
+    try {
+      $(".gwbm-upd-ver").closest(".popup").addClass("gwbm-upd-popup");
+    } catch (e) {}
+  }, 0);
+  const r = await popupPromise;
   if (r === 1) await runUpdateFlow(checkResult.server);
   // r === 2 或关闭：什么都不做，徽标保留
 };
