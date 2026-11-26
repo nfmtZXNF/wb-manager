@@ -117,6 +117,80 @@ const sendToVps = async ({ type, desc, env, logs, images }) => {
     body: JSON.stringify({ type, desc, env, logs, images }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json().catch(() => ({}));
+};
+
+// —— 作者回复：随机 ID 即取件凭证，只存在发送者本地 ——
+const IDS_KEY = "gwbm_feedback_ids";
+const SEEN_KEY = "gwbm_replies_seen";
+
+const getMyFeedbackIds = () => {
+  try {
+    const list = JSON.parse(localStorage.getItem(IDS_KEY) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const rememberFeedbackId = (id) => {
+  if (!id || typeof id !== "string") return;
+  const list = getMyFeedbackIds();
+  list.unshift({ id, t: Date.now() });
+  try {
+    localStorage.setItem(IDS_KEY, JSON.stringify(list.slice(0, 20)));
+  } catch (e) {}
+};
+
+// 查自己历史反馈的回复；没有本地 ID 时完全不发请求
+const fetchMyReplies = async () => {
+  if (!FEEDBACK_ENABLED) return {};
+  const ids = getMyFeedbackIds()
+    .map((x) => x && x.id)
+    .filter(Boolean);
+  if (!ids.length) return {};
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const res = await fetch(`${FEEDBACK_API}/replies?ids=${ids.join(",")}`, {
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return {};
+    const data = await res.json();
+    return (data && data.replies) || {};
+  } catch (e) {
+    return {};
+  }
+};
+
+const markRepliesSeen = (replies) => {
+  let max = 0;
+  for (const id in replies) max = Math.max(max, Number(replies[id].ts) || 0);
+  if (max)
+    try {
+      localStorage.setItem(SEEN_KEY, String(max));
+    } catch (e) {}
+};
+
+// 扩展加载后调用一次：有新回复就弹个小提示
+export const checkFeedbackReplies = async () => {
+  try {
+    const replies = await fetchMyReplies();
+    const ids = Object.keys(replies);
+    if (!ids.length) return;
+    let seen = 0;
+    try {
+      seen = Number(localStorage.getItem(SEEN_KEY)) || 0;
+    } catch (e) {}
+    const hasUnread = ids.some((id) => Number(replies[id].ts || 0) > seen);
+    if (hasUnread && typeof toastr !== "undefined")
+      toastr.info(
+        "你在「全局世界书管理」的反馈收到了作者回复，打开「建议 & Bug 反馈」查看~",
+        "",
+        { timeOut: 8000 },
+      );
+  } catch (e) {}
 };
 
 // —— GitHub 预填（备选通道）——
@@ -187,12 +261,18 @@ export const openFeedbackDialog = async () => {
 
   const logCount = errorLogs.length;
   let pickedImages = []; // 压缩后的 dataURL（最多 3 张）
+  const myReplies = await fetchMyReplies(); // 有本地 ID 才发请求，否则立即返回 {}
 
   const $dlg = $(
     `<div style="text-align:left; min-width:300px; max-width:520px; line-height:1.7; padding:2px;">
       <h3 style="margin-top:0; color:var(--SmartThemeQuoteColor);">
         <i class="fa-solid fa-comments"></i> 建议 &amp; Bug 反馈
       </h3>
+      <div id="gwbm-fb-replies" style="display:none; margin-bottom:10px;">
+        <div style="font-size:13px; color:var(--SmartThemeQuoteColor); font-weight:bold;">
+          <i class="fa-solid fa-reply"></i> 作者回复
+        </div>
+      </div>
       <div style="display:flex; gap:8px; margin-bottom:10px;">
         <label style="flex:1; text-align:center; padding:8px; border:1px solid var(--SmartThemeBorderColor); border-radius:6px; cursor:pointer;">
           <input type="radio" name="gwbm-fb-type" value="建议" style="margin-right:4px;">建议
@@ -221,6 +301,34 @@ export const openFeedbackDialog = async () => {
       </div>
     </div>`,
   );
+
+  // 有作者回复的话展示在弹窗顶部，并标记已读
+  const replyIds = Object.keys(myReplies);
+  if (replyIds.length) {
+    const $box = $dlg.find("#gwbm-fb-replies");
+    $box.show();
+    for (const id of replyIds) {
+      const r = myReplies[id];
+      const $item = $(
+        '<div style="border:1px solid var(--SmartThemeBorderColor); border-radius:6px; padding:8px; margin-top:6px; font-size:12px;"></div>',
+      );
+      $item.append(
+        $('<div style="color:gray; margin-bottom:2px;"></div>').text(
+          `针对你 ${r.fbTime || "此前"} 的反馈${r.desc ? `「${r.desc}」` : ""}：`,
+        ),
+      );
+      $item.append(
+        $('<div style="white-space:pre-wrap;"></div>').text(r.text || ""),
+      );
+      $item.append(
+        $('<div style="color:gray; text-align:right; font-size:11px;"></div>').text(
+          r.time || "",
+        ),
+      );
+      $box.append($item);
+    }
+    markRepliesSeen(myReplies);
+  }
 
   $dlg.find("#gwbm-fb-imgs").on("change", async function () {
     const files = [...(this.files || [])].slice(0, 3);
@@ -263,15 +371,16 @@ export const openFeedbackDialog = async () => {
     return;
   }
   try {
-    await sendToVps({
+    const result = await sendToVps({
       type,
       desc,
       env,
       logs: withLogs ? getLogsText() : "",
       images: pickedImages.map((d) => ({ data: d })),
     });
+    rememberFeedbackId(result && result.id);
     if (typeof toastr !== "undefined")
-      toastr.success("反馈已发送，谢谢你~");
+      toastr.success("反馈已发送，谢谢你~ 作者回复会显示在这个弹窗里");
     // 已上报的日志清掉，避免下次重复带
     if (withLogs) {
       errorLogs.length = 0;

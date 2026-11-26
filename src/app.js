@@ -17,6 +17,7 @@ import { bindMainPanel } from "./main-panel.js";
 import { initMenuEntry } from "./menu-entry.js";
 import "./auto-detect.js";
 import { replaceScriptButtons } from "./compat.js";
+import { checkFeedbackReplies } from "./feedback.js";
 
 try {
   replaceScriptButtons([]);
@@ -54,3 +55,6 @@ if ($insertTarget.length > 0) {
 
 bindMainPanel($menuBtn);
 initMenuEntry();
+
+// 异步检查历史反馈有没有作者回复，不阻塞加载
+checkFeedbackReplies();
