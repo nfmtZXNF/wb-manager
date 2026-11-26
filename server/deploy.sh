@@ -86,7 +86,8 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
 $SUDO systemctl daemon-reload
-$SUDO systemctl enable --now wb-feedback
+$SUDO systemctl enable wb-feedback
+$SUDO systemctl restart wb-feedback
 
 if command -v ufw >/dev/null 2>&1 && $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
   echo "检测到 ufw 已启用，放通 8437 ..."
