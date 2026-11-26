@@ -147,6 +147,28 @@ const getRepliesByIds = (ids) => {
   return out;
 };
 
+// 删除某条反馈（连同配图一起删）
+const deleteFeedback = (rel) => {
+  const abs = path.join(DATA_DIR, path.normalize(String(rel || "")));
+  if (!abs.startsWith(DATA_DIR) || !fs.existsSync(abs) || !abs.endsWith(".json"))
+    return false;
+  try {
+    fs.unlinkSync(abs);
+  } catch (e) {
+    return false;
+  }
+  const dir = path.dirname(abs);
+  const base = path.basename(abs, ".json");
+  for (const f of fs.readdirSync(dir)) {
+    if (f.startsWith(`${base}_img`)) {
+      try {
+        fs.unlinkSync(path.join(dir, f));
+      } catch (e) {}
+    }
+  }
+  return true;
+};
+
 // 切换某条反馈的「已完成」状态
 const toggleDone = (rel) => {
   const abs = path.join(DATA_DIR, path.normalize(String(rel || "")));
@@ -196,6 +218,7 @@ const renderListPage = () => {
       <div class="fb-head">
         <b>[${esc(r.type)}]</b> ${esc(r.time)}
         <button class="donebtn" data-file="${esc(r.file)}">${r.done ? "恢复" : "标记完成"}</button>
+        <button class="delbtn" data-file="${esc(r.file)}">删除</button>
       </div>
       <div style="margin:6px 0;white-space:pre-wrap;">${esc(r.desc)}</div>
       <div style="font-size:12px;color:#888;">扩展 ${esc(r.env && r.env.version)} · 酒馆 ${esc(r.env && r.env.tavernVersion)} · 酒馆助手 ${esc(r.env && r.env.thVersion ? "v" + r.env.thVersion : "未检测到")}</div>
@@ -228,6 +251,8 @@ const renderListPage = () => {
   .fb-head { display:flex; align-items:center; gap:8px; }
   .donebtn { margin-left:auto; padding:4px 12px; border-radius:6px; border:1px solid #888; background:transparent; color:#ddd; cursor:pointer; font-size:12px; }
   .donebtn:hover { background:#444; }
+  .delbtn { padding:4px 12px; border-radius:6px; border:1px solid #a66; background:transparent; color:#e08a8a; cursor:pointer; font-size:12px; }
+  .delbtn:hover { background:#433; }
   .replybox { margin-top:8px; border-top:1px dashed #555; padding-top:6px; }
   .replytext { flex:1; padding:5px 8px; border-radius:6px; border:1px solid #666; background:#1a1a1a; color:#ddd; font-size:12px; }
   .replybtn { padding:4px 14px; border-radius:6px; border:1px solid #7a9; background:transparent; color:#9ecf9e; cursor:pointer; font-size:12px; }
@@ -242,6 +267,20 @@ const renderListPage = () => {
       btn.disabled = true;
       try {
         await fetch("/done", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: ${JSON.stringify(TOKEN)}, file: btn.dataset.file }),
+        });
+      } catch (e) {}
+      location.reload();
+    };
+  });
+  document.querySelectorAll(".delbtn").forEach(function (btn) {
+    btn.onclick = async function () {
+      if (!confirm("确定删除这条反馈？（连同配图一起删，不可恢复）")) return;
+      btn.disabled = true;
+      try {
+        await fetch("/delete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: ${JSON.stringify(TOKEN)}, file: btn.dataset.file }),
@@ -304,6 +343,24 @@ const server = http.createServer((req, res) => {
         const reply = saveReply(file, text);
         if (reply === null) return json(res, 404, { ok: false });
         console.log("已回复反馈:", file);
+        json(res, 200, { ok: true });
+      } catch (e) {
+        json(res, 400, { ok: false });
+      }
+    });
+    return;
+  }
+
+  // 删除反馈（管理端，连同配图）
+  if (req.method === "POST" && url.pathname === "/delete") {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      try {
+        const { token, file } = JSON.parse(body || "{}");
+        if (token !== TOKEN) return json(res, 403, { ok: false });
+        if (!deleteFeedback(file)) return json(res, 404, { ok: false });
+        console.log("已删除反馈:", file);
         json(res, 200, { ok: true });
       } catch (e) {
         json(res, 400, { ok: false });

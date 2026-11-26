@@ -142,6 +142,13 @@ const rememberFeedbackId = (id) => {
   } catch (e) {}
 };
 
+const removeFeedbackId = (id) => {
+  try {
+    const list = getMyFeedbackIds().filter((x) => x && x.id !== id);
+    localStorage.setItem(IDS_KEY, JSON.stringify(list));
+  } catch (e) {}
+};
+
 // 查自己历史反馈的回复；没有本地 ID 时完全不发请求
 const fetchMyReplies = async () => {
   if (!FEEDBACK_ENABLED) return {};
@@ -264,7 +271,14 @@ export const openFeedbackDialog = async () => {
   const myReplies = await fetchMyReplies(); // 有本地 ID 才发请求，否则立即返回 {}
 
   const $dlg = $(
-    `<div style="text-align:left; min-width:300px; max-width:520px; line-height:1.7; padding:2px;">
+    `<style>
+      .gwbm-fb-popup .popup-buttons { display:flex !important; flex-direction:row !important; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+      .gwbm-fb-popup .popup-buttons .menu_button { flex:1 1 auto; min-width:0; margin:0; padding:8px 6px; font-size:13px; text-align:center; white-space:nowrap; }
+      .gwbm-fb-popup .popup-button-ok { display:none !important; }
+      .gwbm-fb-reply-close { float:right; cursor:pointer; color:gray; padding:0 4px; font-size:14px; line-height:1.4; }
+      .gwbm-fb-reply-close:hover { color:inherit; }
+    </style>
+    <div style="text-align:left; min-width:0; max-width:520px; line-height:1.7; padding:2px;">
       <h3 style="margin-top:0; color:var(--SmartThemeQuoteColor);">
         <i class="fa-solid fa-comments"></i> 建议 &amp; Bug 反馈
       </h3>
@@ -310,8 +324,19 @@ export const openFeedbackDialog = async () => {
     for (const id of replyIds) {
       const r = myReplies[id];
       const $item = $(
-        '<div style="border:1px solid var(--SmartThemeBorderColor); border-radius:6px; padding:8px; margin-top:6px; font-size:12px;"></div>',
+        '<div class="gwbm-fb-reply-item" style="border:1px solid var(--SmartThemeBorderColor); border-radius:6px; padding:8px; margin-top:6px; font-size:12px; overflow:hidden;"></div>',
       );
+      const $close = $(
+        '<span class="gwbm-fb-reply-close" title="不再显示这条回复"><i class="fa-solid fa-xmark"></i></span>',
+      );
+      $close.on("click", () => {
+        removeFeedbackId(id);
+        $item.fadeOut(150, function () {
+          $(this).remove();
+          if (!$box.find(".gwbm-fb-reply-item").length) $box.hide();
+        });
+      });
+      $item.append($close);
       $item.append(
         $('<div style="color:gray; margin-bottom:2px;"></div>').text(
           `针对你 ${r.fbTime || "此前"} 的反馈${r.desc ? `「${r.desc}」` : ""}：`,
@@ -348,10 +373,17 @@ export const openFeedbackDialog = async () => {
   if (FEEDBACK_ENABLED)
     buttons.unshift({ text: "直接发送（推荐）", result: 1, classes: ["btn-success"] });
 
-  const r = await st.callGenericPopup($dlg, st.POPUP_TYPE.TEXT, "", {
+  const popupPromise = st.callGenericPopup($dlg, st.POPUP_TYPE.TEXT, "", {
     customButtons: buttons,
     cancelButton: "取消",
   });
+  // 弹窗挂上专属 class，让上面的按钮排版样式只作用于本弹窗
+  setTimeout(() => {
+    try {
+      $("#gwbm-fb-desc").closest(".popup").addClass("gwbm-fb-popup");
+    } catch (e) {}
+  }, 0);
+  const r = await popupPromise;
   if (r !== 1 && r !== 2) return;
 
   const type = $dlg.find('input[name="gwbm-fb-type"]:checked').val() || "Bug";
